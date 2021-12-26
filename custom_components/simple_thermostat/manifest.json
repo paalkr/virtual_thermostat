@@ -1,15 +1,14 @@
 {
-  "domain": "simple_thermostat",
-  "name": "Simple Thermostat",
-  "documentation": "https://github.com/dadge/simple_thermostat",
+  "domain": "virtual_thermostat",
+  "name": "Virtual Thermostat",
+  "documentation": "https://github.com/paalkr/virtual_thermostat",
   "dependencies": [
-    "sensor",
-    "switch"
+    "climate"
   ],
   "codeowners": [
-    "@dadge"
+    "@paalkr"
   ],
-  "version": "1.0.2",
-  "issue_tracker": "https://github.com/dadge/simple_thermostat/issues",
+  "version": "1.0.0",
+  "issue_tracker": "https://github.com/paalkr/virtual_thermostat/issues",
   "iot_class": "local_polling"
 }

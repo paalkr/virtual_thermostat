@@ -120,7 +120,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     async_add_entities(
         [
-            SimpleThermostat(
+            VirtualThermostat(
                 name,
                 heater_entity_id,
                 sensor_entity_id,
@@ -141,7 +141,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     )
 
 
-class SimpleThermostat(ClimateEntity, RestoreEntity):
+class VirtualThermostat(ClimateEntity, RestoreEntity):
     """Representation of a Generic Thermostat device."""
 
     def __init__(
