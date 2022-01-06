@@ -8,9 +8,9 @@ import voluptuous as vol
 from homeassistant.components.climate import PLATFORM_SCHEMA, ClimateEntity
 from homeassistant.components.climate.const import (
     ATTR_PRESET_MODE,
-    CURRENT_HVAC_COOL,
+    # CURRENT_HVAC_COOL,
     CURRENT_HVAC_HEAT,
-    CURRENT_HVAC_IDLE,
+    # CURRENT_HVAC_IDLE,
     CURRENT_HVAC_OFF,
     HVAC_MODE_COOL,
     HVAC_MODE_HEAT,
@@ -18,11 +18,11 @@ from homeassistant.components.climate.const import (
     PRESET_AWAY,
     PRESET_NONE,
     PRESET_ECO,
-    PRESET_BOOST,
-    PRESET_COMFORT,
+    # PRESET_BOOST,
+    # PRESET_COMFORT,
     PRESET_HOME,
-    PRESET_SLEEP,
-    PRESET_ACTIVITY,
+    # PRESET_SLEEP,
+    # PRESET_ACTIVITY,
     SUPPORT_PRESET_MODE,
     SUPPORT_TARGET_TEMPERATURE,
 )
@@ -194,7 +194,7 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
         self._unit = unit
         self._unique_id = unique_id
         self._support_flags = SUPPORT_FLAGS | SUPPORT_PRESET_MODE
-        self._preset_mode = PRESET_NONE
+        self._preset_mode = PRESET_HOME
         self._attributes = {}
 
     async def async_added_to_hass(self):
@@ -261,7 +261,9 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
                 self._hvac_mode = old_state.state
             for x in self.preset_modes:
                 if old_state.attributes.get(x + "_temp") is not None:
-                     self._attributes[x + "_temp"] = old_state.attributes.get(x + "_temp")
+                    self._attributes[x + "_temp"] = old_state.attributes.get(
+                        x + "_temp"
+                    )
         else:
             # No previous state, try and restore defaults
             if self._target_temp is None:
@@ -274,18 +276,17 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
                 "No previously saved temperature, setting to %s", self._target_temp
             )
 
-
         # Set default state to off
         if not self._hvac_mode:
             self._hvac_mode = HVAC_MODE_OFF
 
         # Prevent the device from keep running if HVAC_MODE_OFF
-        if self._hvac_mode == HVAC_MODE_OFF and self._is_device_active:
-            await self._async_heater_turn_off()
-            _LOGGER.warning(
-                "The climate mode is OFF, but the switch device is ON. Turning off device %s",
-                self.heater_entity_id,
-            )
+        # if self._hvac_mode == HVAC_MODE_OFF and self._is_device_active:
+        #     await self._async_heater_turn_off()
+        #     _LOGGER.warning(
+        #         "The climate mode is OFF, but the switch device is ON. Turning off device %s",
+        #         self.heater_entity_id,
+        #     )
 
     @property
     def should_poll(self):
@@ -370,10 +371,10 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
             PRESET_NONE,
             PRESET_AWAY,
             PRESET_ECO,
-            PRESET_COMFORT,
-            PRESET_BOOST,
-            PRESET_SLEEP,
-            PRESET_ACTIVITY,
+            # PRESET_COMFORT,
+            # PRESET_BOOST,
+            # PRESET_SLEEP,
+            # PRESET_ACTIVITY,
             PRESET_HOME,
         ]
 
@@ -389,6 +390,7 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
             self._hvac_mode = HVAC_MODE_OFF
             # if self._is_device_active:
             #     await self._async_heater_turn_off()
+            await self._async_thermostat_turn_off()
         else:
             _LOGGER.error("Unrecognized hvac mode: %s", hvac_mode)
             return
@@ -544,6 +546,13 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
     #     await self.hass.services.async_call(
     #         HA_DOMAIN, SERVICE_TURN_OFF, data, context=self._context
     #     )
+
+    async def _async_thermostat_turn_off(self):
+        """Set thermostat HVAC mode to off."""
+        data = {ATTR_ENTITY_ID: self.thermostat_entity_id}
+        await self.hass.services.async_call(
+            HA_DOMAIN, HVAC_MODE_OFF, data, context=self._context
+        )
 
     async def async_set_preset_mode(self, preset_mode: str):
         """Set new preset mode."""
