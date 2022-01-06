@@ -25,18 +25,38 @@ input_boolean:
 
 
 climate:
-  - platform: simple_thermostat
-    name: "Simple Thermostat"
+  # - platform: simple_thermostat
+  #   name: "Simple Thermostat"
+  #   heater: input_boolean.fake_heater_switch
+  #   target_sensor: input_number.fake_target_sensor
+  #   min_temp: 17
+  #   max_temp: 23
+  #   ac_mode: false
+  #   cold_tolerance: 0.3
+  #   hot_tolerance: 0.3
+  #   min_cycle_duration:
+  #     seconds: 5
+  #   keep_alive:
+  #     minutes: 3
+  #   initial_hvac_mode: "heat"
+  #   precision: 0.1
+
+  - platform: generic_thermostat
+    name: fake_thermostat
     heater: input_boolean.fake_heater_switch
     target_sensor: input_number.fake_target_sensor
-    min_temp: 17
-    max_temp: 23
+    min_temp: 5
+    max_temp: 35
     ac_mode: false
     cold_tolerance: 0.3
     hot_tolerance: 0.3
-    min_cycle_duration:
-      seconds: 5
-    keep_alive:
-      minutes: 3
     initial_hvac_mode: "heat"
-    precision: 0.1
+    precision: 0.5
+
+  - platform: virtual_thermostat
+    name: 1.etg-kontor-virtual-thermostat
+    thermostat: climate.fake_thermostat
+    target_temp: 21.5
+    initial_hvac_mode: heat
+    precision: 0.5
+    unique_id: 1.etg-kontor-virtaul-thermostat
