@@ -7,6 +7,8 @@ logger:
 
 # If you need to debug uncommment the line below (doc: https://www.home-assistant.io/integrations/debugpy/)
 debugpy:
+  start: true
+  wait: true
 
 input_number:
   fake_target_sensor:
@@ -56,7 +58,7 @@ climate:
   - platform: virtual_thermostat
     name: 1.etg-kontor-virtual-thermostat
     thermostat: climate.fake_thermostat
-    target_temp: 21.5
+    # target_temp: 16
     initial_hvac_mode: heat
     precision: 0.5
     unique_id: 1.etg-kontor-virtaul-thermostat

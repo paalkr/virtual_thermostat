@@ -230,7 +230,6 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
             # ):
             #     self._async_update_temp(sensor_state)
             #     self.async_write_ha_state()
-            thermostate_state = self.hass.states.get(self.thermostat_entity_id)
 
         if self.hass.state == CoreState.running:
             _async_startup()
@@ -279,6 +278,9 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
         # Set default state to off
         if not self._hvac_mode:
             self._hvac_mode = HVAC_MODE_OFF
+
+        # Sync temperature to real thermostat
+        await self._async_copy_temperture()
 
         # Prevent the device from keep running if HVAC_MODE_OFF
         # if self._hvac_mode == HVAC_MODE_OFF and self._is_device_active:
@@ -368,7 +370,7 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
     @property
     def preset_modes(self):
         return [
-            PRESET_NONE,
+            # PRESET_NONE,
             PRESET_AWAY,
             PRESET_ECO,
             # PRESET_COMFORT,
@@ -383,6 +385,7 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
         if hvac_mode == HVAC_MODE_HEAT:
             self._hvac_mode = HVAC_MODE_HEAT
             # await self._async_control_heating(force=True)
+            # await self._async_thermostat_heat()
         elif hvac_mode == HVAC_MODE_COOL:
             self._hvac_mode = HVAC_MODE_COOL
             # await self._async_control_heating(force=True)
@@ -390,11 +393,12 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
             self._hvac_mode = HVAC_MODE_OFF
             # if self._is_device_active:
             #     await self._async_heater_turn_off()
-            await self._async_thermostat_turn_off()
+            # await self._async_thermostat_turn_off()
         else:
             _LOGGER.error("Unrecognized hvac mode: %s", hvac_mode)
             return
         # Ensure we update the current operation after changing the mode
+        await self._async_copy_hvac_mode()
         self.async_write_ha_state()
 
     async def async_set_temperature(self, **kwargs):
@@ -406,6 +410,16 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
         if self._preset_mode != PRESET_NONE:
             self._attributes[self._preset_mode + "_temp"] = self._target_temp
         # await self._async_control_heating(force=True)
+        await self._async_copy_temperture()
+
+        # data = {
+        #     ATTR_ENTITY_ID: self.thermostat_entity_id,
+        #     ATTR_TEMPERATURE: self._target_temp,
+        # }
+        # await self.hass.services.async_call(
+        #     "climate", "set_temperature", data, context=None
+        # )
+
         self.async_write_ha_state()
 
     @property
@@ -547,13 +561,6 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
     #         HA_DOMAIN, SERVICE_TURN_OFF, data, context=self._context
     #     )
 
-    async def _async_thermostat_turn_off(self):
-        """Set thermostat HVAC mode to off."""
-        data = {ATTR_ENTITY_ID: self.thermostat_entity_id}
-        await self.hass.services.async_call(
-            HA_DOMAIN, HVAC_MODE_OFF, data, context=self._context
-        )
-
     async def async_set_preset_mode(self, preset_mode: str):
         """Set new preset mode."""
         """Test if Preset mode is valid"""
@@ -570,4 +577,36 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
             temp = self._attributes.get(self._preset_mode + "_temp", self._target_temp)
             self._target_temp = float(temp)
         # await self._async_control_heating(force=True)
+        await self._async_copy_temperture()
         self.async_write_ha_state()
+
+    async def _async_copy_temperture(self):
+        """Copy temperature to thermostat entety."""
+        data = {
+            ATTR_ENTITY_ID: self.thermostat_entity_id,
+            ATTR_TEMPERATURE: self._target_temp,
+        }
+        await self.hass.services.async_call(
+            "climate", "set_temperature", data, context=None
+        )
+
+    async def _async_copy_hvac_mode(self):
+        """Set thermostat HVAC mode to off."""
+        data = {ATTR_ENTITY_ID: self.thermostat_entity_id, "hvac_mode": self._hvac_mode}
+        await self.hass.services.async_call(
+            "climate", "set_hvac_mode", data, context=None
+        )
+
+    # async def _async_thermostat_turn_off(self):
+    #     """Set thermostat HVAC mode to off."""
+    #     data = {ATTR_ENTITY_ID: self.thermostat_entity_id, "hvac_mode": HVAC_MODE_OFF}
+    #     await self.hass.services.async_call(
+    #         "climate", "set_hvac_mode", data, context=None
+    #     )
+
+    # async def _async_thermostat_heat(self):
+    #     """Set thermostat HVAC mode to off."""
+    #     data = {ATTR_ENTITY_ID: self.thermostat_entity_id, "hvac_mode": HVAC_MODE_HEAT}
+    #     await self.hass.services.async_call(
+    #         "climate", "set_hvac_mode", data, context=None
+    #     )
