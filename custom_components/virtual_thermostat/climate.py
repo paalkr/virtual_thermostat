@@ -8,9 +8,9 @@ import voluptuous as vol
 from homeassistant.components.climate import PLATFORM_SCHEMA, ClimateEntity
 from homeassistant.components.climate.const import (
     ATTR_PRESET_MODE,
-    # CURRENT_HVAC_COOL,
+    CURRENT_HVAC_COOL,
     CURRENT_HVAC_HEAT,
-    # CURRENT_HVAC_IDLE,
+    CURRENT_HVAC_IDLE,
     CURRENT_HVAC_OFF,
     HVAC_MODE_COOL,
     HVAC_MODE_HEAT,
@@ -18,11 +18,11 @@ from homeassistant.components.climate.const import (
     PRESET_AWAY,
     PRESET_NONE,
     PRESET_ECO,
-    # PRESET_BOOST,
-    # PRESET_COMFORT,
+    PRESET_BOOST,
+    PRESET_COMFORT,
     PRESET_HOME,
-    # PRESET_SLEEP,
-    # PRESET_ACTIVITY,
+    PRESET_SLEEP,
+    PRESET_ACTIVITY,
     SUPPORT_PRESET_MODE,
     SUPPORT_TARGET_TEMPERATURE,
 )
@@ -60,12 +60,12 @@ _LOGGER = logging.getLogger(__name__)
 DEFAULT_NAME = "Virtual Thermostat"
 
 # CONF_HEATER = "heater"
-# CONF_SENSOR = "target_sensor"
+CONF_SENSOR = "target_sensor"
 CONF_THERMOSTATE = "thermostat"
 CONF_MIN_TEMP = "min_temp"
 CONF_MAX_TEMP = "max_temp"
 CONF_TARGET_TEMP = "target_temp"
-# CONF_AC_MODE = "ac_mode"
+CONF_AC_MODE = "ac_mode"
 # CONF_MIN_DUR = "min_cycle_duration"
 # CONF_COLD_TOLERANCE = "cold_tolerance"
 # CONF_HOT_TOLERANCE = "hot_tolerance"
@@ -77,9 +77,9 @@ SUPPORT_FLAGS = SUPPORT_TARGET_TEMPERATURE
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         # vol.Required(CONF_HEATER): cv.entity_id,
-        # vol.Required(CONF_SENSOR): cv.entity_id,
+        vol.Required(CONF_SENSOR): cv.entity_id,
         vol.Required(CONF_THERMOSTATE): cv.entity_id,
-        # vol.Optional(CONF_AC_MODE): cv.boolean,
+        vol.Optional(CONF_AC_MODE): cv.boolean,
         vol.Optional(CONF_MAX_TEMP): vol.Coerce(float),
         # vol.Optional(CONF_MIN_DUR): cv.positive_time_period,
         vol.Optional(CONF_MIN_TEMP): vol.Coerce(float),
@@ -106,12 +106,12 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     name = config.get(CONF_NAME)
     # heater_entity_id = config.get(CONF_HEATER)
-    # sensor_entity_id = config.get(CONF_SENSOR)
+    sensor_entity_id = config.get(CONF_SENSOR)
     thermostat_entity_id = config.get(CONF_THERMOSTATE)
     min_temp = config.get(CONF_MIN_TEMP)
     max_temp = config.get(CONF_MAX_TEMP)
     target_temp = config.get(CONF_TARGET_TEMP)
-    # ac_mode = config.get(CONF_AC_MODE)
+    ac_mode = config.get(CONF_AC_MODE)
     # min_cycle_duration = config.get(CONF_MIN_DUR)
     # cold_tolerance = config.get(CONF_COLD_TOLERANCE)
     # hot_tolerance = config.get(CONF_HOT_TOLERANCE)
@@ -126,12 +126,12 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
             VirtualThermostat(
                 name,
                 # heater_entity_id,
-                # sensor_entity_id,
+                sensor_entity_id,
                 thermostat_entity_id,
                 min_temp,
                 max_temp,
                 target_temp,
-                # ac_mode,
+                ac_mode,
                 # min_cycle_duration,
                 # cold_tolerance,
                 # hot_tolerance,
@@ -152,12 +152,12 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
         self,
         name,
         # heater_entity_id,
-        # sensor_entity_id,
+        sensor_entity_id,
         thermostat_entity_id,
         min_temp,
         max_temp,
         target_temp,
-        # ac_mode,
+        ac_mode,
         # min_cycle_duration,
         # cold_tolerance,
         # hot_tolerance,
@@ -170,9 +170,9 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
         """Initialize the thermostat."""
         self._name = name
         # self.heater_entity_id = heater_entity_id
-        # self.sensor_entity_id = sensor_entity_id
+        self.sensor_entity_id = sensor_entity_id
         self.thermostat_entity_id = thermostat_entity_id
-        # self.ac_mode = ac_mode
+        self.ac_mode = ac_mode
         # self.min_cycle_duration = min_cycle_duration
         # self._cold_tolerance = cold_tolerance
         # self._hot_tolerance = hot_tolerance
@@ -180,10 +180,10 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
         self._hvac_mode = initial_hvac_mode
         self._saved_target_temp = target_temp
         self._temp_precision = precision
-        # if self.ac_mode:
-        #     self._hvac_list = [HVAC_MODE_COOL, HVAC_MODE_OFF]
-        # else:
-        #     self._hvac_list = [HVAC_MODE_HEAT, HVAC_MODE_OFF]
+        if self.ac_mode:
+            self._hvac_list = [HVAC_MODE_COOL, HVAC_MODE_OFF]
+        else:
+            self._hvac_list = [HVAC_MODE_HEAT, HVAC_MODE_OFF]
         self._hvac_list = [HVAC_MODE_HEAT, HVAC_MODE_OFF]
         self._active = False
         self._cur_temp = None
@@ -202,11 +202,20 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
         await super().async_added_to_hass()
 
         # Add listener
-        # self.async_on_remove(
-        #     async_track_state_change_event(
-        #         self.hass, [self.sensor_entity_id], self._async_sensor_changed
-        #     )
-        # )
+        self.async_on_remove(
+            async_track_state_change_event(
+                self.hass, [self.sensor_entity_id], self._async_sensor_changed
+            )
+        )
+
+        ## TO DO ## Add listener that reacts to thermostat (thermostat_entity_id) changes (setpoint) -> update virtual thermostat
+
+        self.async_on_remove(
+            async_track_state_change_event(
+                self.hass, [self.thermostat_entity_id], self._async_thermostat_changed
+            )
+        )
+
         # self.async_on_remove(
         #     async_track_state_change_event(
         #         self.hass, [self.heater_entity_id], self._async_switch_changed
@@ -223,13 +232,13 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
         @callback
         def _async_startup(*_):
             """Init on startup."""
-            # sensor_state = self.hass.states.get(self.sensor_entity_id)
-            # if sensor_state and sensor_state.state not in (
-            #     STATE_UNAVAILABLE,
-            #     STATE_UNKNOWN,
-            # ):
-            #     self._async_update_temp(sensor_state)
-            #     self.async_write_ha_state()
+            sensor_state = self.hass.states.get(self.sensor_entity_id)
+            if sensor_state and sensor_state.state not in (
+                STATE_UNAVAILABLE,
+                STATE_UNKNOWN,
+            ):
+                self._async_update_temp(sensor_state)
+                self.async_write_ha_state()
 
         if self.hass.state == CoreState.running:
             _async_startup()
@@ -243,10 +252,10 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
             if self._target_temp is None:
                 # If we have a previously saved temperature
                 if old_state.attributes.get(ATTR_TEMPERATURE) is None:
-                    # if self.ac_mode:
-                    #     self._target_temp = self.max_temp
-                    # else:
-                    #     self._target_temp = self.min_temp
+                    if self.ac_mode:
+                        self._target_temp = self.max_temp
+                    else:
+                        self._target_temp = self.min_temp
                     self._target_temp = self.min_temp
                     _LOGGER.warning(
                         "Undefined target temperature, falling back to %s",
@@ -266,10 +275,10 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
         else:
             # No previous state, try and restore defaults
             if self._target_temp is None:
-                # if self.ac_mode:
-                #     self._target_temp = self.max_temp
-                # else:
-                #     self._target_temp = self.min_temp
+                if self.ac_mode:
+                    self._target_temp = self.max_temp
+                else:
+                    self._target_temp = self.min_temp
                 self._target_temp = self.min_temp
             _LOGGER.warning(
                 "No previously saved temperature, setting to %s", self._target_temp
@@ -347,10 +356,10 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
         """
         if self._hvac_mode == HVAC_MODE_OFF:
             return CURRENT_HVAC_OFF
-        # if not self._is_device_active:
-        #     return CURRENT_HVAC_IDLE
-        # if self.ac_mode:
-        #     return CURRENT_HVAC_COOL
+        if not self._is_device_active:
+            return CURRENT_HVAC_IDLE
+        if self.ac_mode:
+            return CURRENT_HVAC_COOL
         return CURRENT_HVAC_HEAT
 
     @property
@@ -385,7 +394,6 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
         if hvac_mode == HVAC_MODE_HEAT:
             self._hvac_mode = HVAC_MODE_HEAT
             # await self._async_control_heating(force=True)
-            # await self._async_thermostat_heat()
         elif hvac_mode == HVAC_MODE_COOL:
             self._hvac_mode = HVAC_MODE_COOL
             # await self._async_control_heating(force=True)
@@ -393,7 +401,6 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
             self._hvac_mode = HVAC_MODE_OFF
             # if self._is_device_active:
             #     await self._async_heater_turn_off()
-            # await self._async_thermostat_turn_off()
         else:
             _LOGGER.error("Unrecognized hvac mode: %s", hvac_mode)
             return
@@ -411,15 +418,6 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
             self._attributes[self._preset_mode + "_temp"] = self._target_temp
         # await self._async_control_heating(force=True)
         await self._async_copy_temperture()
-
-        # data = {
-        #     ATTR_ENTITY_ID: self.thermostat_entity_id,
-        #     ATTR_TEMPERATURE: self._target_temp,
-        # }
-        # await self.hass.services.async_call(
-        #     "climate", "set_temperature", data, context=None
-        # )
-
         self.async_write_ha_state()
 
     @property
@@ -440,15 +438,23 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
         # Get default temp from super class
         return super().max_temp
 
-    # async def _async_sensor_changed(self, event):
-    #     """Handle temperature changes."""
-    #     new_state = event.data.get("new_state")
-    #     if new_state is None or new_state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-    #         return
+    async def _async_sensor_changed(self, event):
+        """Handle temperature changes."""
+        new_state = event.data.get("new_state")
+        if new_state is None or new_state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+            return
 
-    #     self._async_update_temp(new_state)
-    #     await self._async_control_heating()
-    #     self.async_write_ha_state()
+        self._async_update_temp(new_state)
+        # await self._async_control_heating()
+        self.async_write_ha_state()
+
+    async def _async_thermostat_changed(self, event):
+        """Handle thermostat setpoint changes."""
+        new_state = event.data.get("new_state")
+        if new_state is not None:
+            new_temperature = new_state.attributes[ATTR_TEMPERATURE]
+            self._target_temp = new_temperature
+            self.async_write_ha_state()
 
     # @callback
     # def _async_switch_changed(self, event):
@@ -458,16 +464,16 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
     #         return
     #     self.async_write_ha_state()
 
-    # @callback
-    # def _async_update_temp(self, state):
-    #     """Update thermostat with latest state from sensor."""
-    #     try:
-    #         cur_temp = float(state.state)
-    #         if math.isnan(cur_temp) or math.isinf(cur_temp):
-    #             raise ValueError(f"Sensor has illegal state {state.state}")
-    #         self._cur_temp = cur_temp
-    #     except ValueError as ex:
-    #         _LOGGER.error("Unable to update from sensor: %s", ex)
+    @callback
+    def _async_update_temp(self, state):
+        """Update thermostat with latest state from sensor."""
+        try:
+            cur_temp = float(state.state)
+            if math.isnan(cur_temp) or math.isinf(cur_temp):
+                raise ValueError(f"Sensor has illegal state {state.state}")
+            self._cur_temp = cur_temp
+        except ValueError as ex:
+            _LOGGER.error("Unable to update from sensor: %s", ex)
 
     # async def _async_control_heating(self, time=None, force=False):
     #     """Check if we need to turn heating on or off."""
@@ -534,13 +540,18 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
     #                 )
     #                 await self._async_heater_turn_off()
 
-    # @property
-    # def _is_device_active(self):
-    #     """If the toggleable device is currently active."""
-    #     if not self.hass.states.get(self.heater_entity_id):
-    #         return None
-
-    #     return self.hass.states.is_state(self.heater_entity_id, STATE_ON)
+    @property
+    def _is_device_active(self):
+        """If the toggleable device is currently active."""
+        try:
+            if self._cur_temp is not None:
+                if self._target_temp >= self._cur_temp:
+                    return True
+                if self._cur_temp >= self._target_temp:
+                    return False
+        except ValueError as ex:
+            _LOGGER.warning("Current temperature is currently unknown: %s", ex)
+        return None
 
     @property
     def supported_features(self):
