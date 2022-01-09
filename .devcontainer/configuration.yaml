@@ -58,7 +58,7 @@ climate:
   - platform: virtual_thermostat
     name: 1.etg-kontor-virtual-thermostat
     thermostat: climate.fake_thermostat
-    # target_temp: 16
+    target_sensor: input_number.fake_target_sensor
     initial_hvac_mode: heat
     precision: 0.5
     unique_id: 1.etg-kontor-virtaul-thermostat
