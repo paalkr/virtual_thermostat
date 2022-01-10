@@ -5,18 +5,20 @@
 [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 
 
-_Component developed by using the amazing development template [blueprint][blueprint]._
+_Component based upon the virtual thermostat project (https://github.com/dadge/simple_thermostat)._
 
-This custom component for Home Assistant is an upgrade of the generic thermostat which handles presets mode in a very simple way.
+This custom component for Home Assistant solves a very specific use case, and you will probably not need this.
+Some hardware thermostats come without presets. This component creates a virtual thermostat with presets and will
+execute a continuous two-way sync of status and setpoint between the hardware thermostat and the virtual thermostat.
 
-## How Generic thermostat behaves with modes : 
+## How Generic thermostat behaves with modes :
 Basically, the generic thermostat handle two preset mode : AWAY and NONE.
-When AWAY mode is set, the thermostat will set the tempaerature with the away temperature defined in the yaml configuration. 
+When AWAY mode is set, the thermostat will set the tempaerature with the away temperature defined in the yaml configuration.
 When NONE is selected, the temperature set is saved. Every time you set the mode as NONE, the temperature will be automatically set with the saved value. If you want to change the saved value, set the mode to NONE, set the deisred temperature, and that's it.
 
 ## How Simple Thermostat behaves with modes and additional feature
 Define by default all the modes defined in the climate specs : https://developers.home-assistant.io/docs/core/entity/climate#presets
-The simple thermostat reproduce the behavior of the mode NONE in generic thermostat and extend it to all the modes : 
+The simple thermostat reproduce the behavior of the mode NONE in generic thermostat and extend it to all the modes :
 * Pick a mode
 
 ![image](https://user-images.githubusercontent.com/1717155/119150574-dd6c2680-ba4e-11eb-80bb-a1164b0b9df4.png)
@@ -55,7 +57,7 @@ The simple thermostat reproduce the behavior of the mode NONE in generic thermos
 
 ## Configuration
 
-In the following examples we are assuming that you know how to configure a generic thermostat (if not please have a look at : https://www.home-assistant.io/integrations/generic_thermostat/ ) and we will just highlight the differences in the configuration to apply. 
+In the following examples we are assuming that you know how to configure a generic thermostat (if not please have a look at : https://www.home-assistant.io/integrations/generic_thermostat/ ) and we will just highlight the differences in the configuration to apply.
 
 ```yaml
 climate:
@@ -65,31 +67,31 @@ climate:
     target_sensor: sensor.study_temperature
 ```
 
-If you had already configure a generic thermostat the onli changes you have to do are the following : 
+If you had already configure a generic thermostat the onli changes you have to do are the following :
 * platform must be changed from generic_thermostat to simple_thermostat
 * away_temp must be removed
 
-## Even Better with Scheduler Component ! 
+## Even Better with Scheduler Component !
 
-In order to enjoy the full power of simple thermostat, I invite you to use it with https://github.com/nielsfaber/scheduler-component 
-Indeed, the schdeuler component porpose a management of the climate base on the preset modes. This feature has limited interest with the generic thermostat but it becomes highly powerfull with Simple thermostat : 
+In order to enjoy the full power of simple thermostat, I invite you to use it with https://github.com/nielsfaber/scheduler-component
+Indeed, the schdeuler component porpose a management of the climate base on the preset modes. This feature has limited interest with the generic thermostat but it becomes highly powerfull with Simple thermostat :
 
 Starting here, I assume you have installed Simple Thermostat and Scheduler Component.
 
-In Scheduler, add a schedule : 
+In Scheduler, add a schedule :
 
 ![image](https://user-images.githubusercontent.com/1717155/119146454-ee1a9d80-ba4a-11eb-80ae-3074c3511830.png)
 
-Choose "climate" group, choose one (or multiple) entity/ies, select "MAKE SCHEME" and click next : 
+Choose "climate" group, choose one (or multiple) entity/ies, select "MAKE SCHEME" and click next :
 (it is possible to choose "SET PRESET", but I prefer to use "MAKE SCHEME")
 
 ![image](https://user-images.githubusercontent.com/1717155/119147210-aa746380-ba4b-11eb-8def-479a741c0ba7.png)
 
-Set your mode scheme and save : 
+Set your mode scheme and save :
 
 ![image](https://user-images.githubusercontent.com/1717155/119147784-2f5f7d00-ba4c-11eb-9de4-5e62ff5e71a8.png)
 
-In this example I set ECO mode during the night and the day when nobody's at home BOOST in the morning and COMFORT in the evening. 
+In this example I set ECO mode during the night and the day when nobody's at home BOOST in the morning and COMFORT in the evening.
 
 
 I hope this example helps you, don't hesitate to give me your feedbacks !
