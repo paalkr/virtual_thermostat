@@ -454,6 +454,8 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
         if new_state is not None:
             new_temperature = new_state.attributes[ATTR_TEMPERATURE]
             self._target_temp = new_temperature
+            if self._preset_mode != PRESET_NONE:
+                self._attributes[self._preset_mode + "_temp"] = self._target_temp
             self.async_write_ha_state()
 
     # @callback
@@ -602,7 +604,7 @@ class VirtualThermostat(ClimateEntity, RestoreEntity):
         )
 
     async def _async_copy_hvac_mode(self):
-        """Set thermostat HVAC mode to off."""
+        """Copy HVAC mode thermostat entety."""
         data = {ATTR_ENTITY_ID: self.thermostat_entity_id, "hvac_mode": self._hvac_mode}
         await self.hass.services.async_call(
             "climate", "set_hvac_mode", data, context=None
