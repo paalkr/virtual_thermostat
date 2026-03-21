@@ -1,12 +1,20 @@
 # Test Report: Virtual Thermostat v2.0.0
 
-**Date:** 2026-03-21
+**Date:** 2026-03-22
 **Test framework:** pytest 8.3.4 + pytest-homeassistant-custom-component 0.13.205
-**Home Assistant version:** 2025.1.4
 **Python:** 3.12.3
-**Total tests:** 39 | **Passed:** 39 | **Failed:** 0
+**Total tests:** 60 | **Passed:** 60 | **Failed:** 0
 
-## Test Results
+## Compatibility
+
+| HA Version | Unit Tests (39) | Integration Tests (21) | UI (Playwright) |
+|------------|-----------------|------------------------|------------------|
+| 2025.1.4   | 39/39 PASS      | 21/21 PASS             | All verified     |
+| 2026.3.3   | —               | 21/21 PASS             | All verified     |
+
+## Unit Tests (test_climate.py)
+
+Tested with pytest-homeassistant-custom-component (mocked HA core).
 
 ### Group 1: Initialization & Configuration (6/6 passed)
 
@@ -92,12 +100,81 @@
 | 38 | test_precision_override | PASS |
 | 39 | test_min_max_temp_override | PASS |
 
+## Integration Tests (test_integration.py)
+
+Tested against live HA containers (Docker) via REST API.
+
+### Group 1: Entity Discovery (5/5 passed)
+
+| # | Test | Result |
+|---|------|--------|
+| 40 | test_virtual_thermostat_exists | PASS |
+| 41 | test_physical_thermostat_exists | PASS |
+| 42 | test_virtual_has_preset_modes | PASS |
+| 43 | test_virtual_has_correct_hvac_modes | PASS |
+| 44 | test_sensor_exists | PASS |
+
+### Group 2: Two-Way Temperature Sync (3/3 passed)
+
+| # | Test | Result |
+|---|------|--------|
+| 45 | test_virtual_to_physical_temp_sync | PASS |
+| 46 | test_physical_to_virtual_temp_sync | PASS |
+| 47 | test_sensor_update_reflects_on_virtual | PASS |
+
+### Group 3: Two-Way HVAC Mode Sync (4/4 passed)
+
+| # | Test | Result |
+|---|------|--------|
+| 48 | test_virtual_off_syncs_to_physical | PASS |
+| 49 | test_virtual_heat_syncs_to_physical | PASS |
+| 50 | test_physical_off_syncs_to_virtual | PASS |
+| 51 | test_physical_heat_syncs_to_virtual | PASS |
+
+### Group 4: Preset Mode Behavior (3/3 passed)
+
+| # | Test | Result |
+|---|------|--------|
+| 52 | test_switch_to_away_preset | PASS |
+| 53 | test_preset_remembers_temperature | PASS |
+| 54 | test_preset_temp_syncs_to_physical | PASS |
+
+### Group 5: HVAC Action (3/3 passed)
+
+| # | Test | Result |
+|---|------|--------|
+| 55 | test_action_heating | PASS |
+| 56 | test_action_idle | PASS |
+| 57 | test_action_off | PASS |
+
+### Group 6: Edge Cases (3/3 passed)
+
+| # | Test | Result |
+|---|------|--------|
+| 58 | test_rapid_temp_changes | PASS |
+| 59 | test_min_temp_boundary | PASS |
+| 60 | test_max_temp_boundary | PASS |
+
+## Playwright UI Verification
+
+Manual verification using Playwright MCP (Edge browser) against live HA containers.
+
+| Test | HA 2025.1 | HA 2026.3.3 |
+|------|-----------|-------------|
+| Login and dashboard load | PASS | PASS |
+| Thermostat entities visible in UI | PASS | PASS |
+| UI +/- button changes temp on both thermostats | PASS | PASS |
+| API temp change reflected in UI after reload | PASS | PASS |
+| UI mode switch (Heat↔Off) syncs both thermostats | PASS | PASS |
+| HVAC action display (Heating/Idle/Off) | PASS | PASS |
+| No component errors in HA logs | PASS | PASS |
+
 ## Issues Found During Testing
 
 ### 1. Missing `_attr_temperature_unit` class attribute (BUG - FIXED)
 
 **Severity:** Critical (component fails to load)
-**Description:** HA 2025.1's `ClimateEntity` uses a `cached_property` for `temperature_unit` that reads `self._attr_temperature_unit`. When we removed the `temperature_unit` property override (Phase 3b of the upgrade plan), we didn't provide this attribute. HA's entity platform calls `capability_attributes` during entity registration, which accesses `temperature_unit` before `async_added_to_hass()` runs.
+**Description:** HA 2025.1's `ClimateEntity` uses a `cached_property` for `temperature_unit` that reads `self._attr_temperature_unit`. When we removed the `temperature_unit` property override, we didn't provide this attribute. HA's entity platform calls `capability_attributes` during entity registration, which accesses `temperature_unit` before `async_added_to_hass()` runs.
 **Fix:** Added `_attr_temperature_unit = UnitOfTemperature.CELSIUS` as a class-level default on `VirtualThermostat`, and set the actual value from `hass.config.units.temperature_unit` in `async_added_to_hass()`.
 
 ### 2. HA 2025.1 validates preset modes before entity code (TEST FIX)
@@ -108,13 +185,17 @@
 
 ## Test Infrastructure Notes
 
-- Tests use `pytest-homeassistant-custom-component` which provides full HA test fixtures
+- **Unit tests** use `pytest-homeassistant-custom-component` which provides full HA test fixtures
+- **Integration tests** use `requests` against a live HA Docker container on port 9123
+- Integration tests re-enable sockets via `pytest_socket.enable_socket()` (the HA test plugin blocks them by default)
 - Custom component discovery requires a symlink from the test framework's `testing_config/custom_components/` to our component directory
-- The `enable_custom_integrations` fixture (auto-enabled via conftest.py) allows HA to discover custom components in tests
+- The `enable_custom_integrations` fixture (auto-enabled via conftest.py) allows HA to discover custom components in unit tests
 - `mock_restore_cache` must be called BEFORE `async_setup_component` for state restoration tests
 - `asyncio_mode = "auto"` in `pyproject.toml` is required for async fixtures to resolve properly
 
 ## Running Tests
+
+### Unit tests only (no Docker required)
 
 ```bash
 cd virtual_thermostat
@@ -125,6 +206,22 @@ python3 -m venv .venv
 ln -sfn "$(pwd)/custom_components/virtual_thermostat" \
   .venv/lib/python3.12/site-packages/pytest_homeassistant_custom_component/testing_config/custom_components/virtual_thermostat
 
-# Run tests
+.venv/bin/pytest tests/test_climate.py -v
+```
+
+### Integration tests (requires Docker)
+
+```bash
+# Start HA container
+docker run -d --name ha-virtual-thermostat -p 9123:8123 \
+  -v $PWD/.devcontainer/configuration.yaml:/config/configuration.yaml:ro \
+  -v $PWD/custom_components/virtual_thermostat:/config/custom_components/virtual_thermostat:ro \
+  ghcr.io/home-assistant/home-assistant:stable
+
+# Complete onboarding at http://localhost:9123, then update REFRESH_TOKEN in test_integration.py
+
+.venv/bin/pytest tests/test_integration.py -v --tb=short
+
+# All tests together
 .venv/bin/pytest tests/ -v
 ```

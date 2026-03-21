@@ -42,8 +42,8 @@ def _enable_real_sockets():
 
 HA_URL = "http://localhost:9123"
 REFRESH_TOKEN = (
-    "4eb57e0553b2549e8bb4d8e60059f9e4fca955f6758ba254d09d30cd686a7bed"
-    "8c78f467729c0e66326167840c1eafb613a55645c7c866451a61190137e92c01"
+    "c6163906329dcec08d5fedae95f763eea10c977a452b359197a1c72e1ffe7558"
+    "8e51d957df08607f343c8bfb922902a83adcbdffd66ac70dff6ca80d8800742a"
 )
 CLIENT_ID = "http://localhost:9123/"
 
