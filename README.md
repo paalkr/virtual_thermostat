@@ -2,117 +2,89 @@
 [![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]](LICENSE)
 [![hacs][hacsbadge]][hacs]
-[![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 
+# Virtual Thermostat
 
-_Component based upon the virtual thermostat project (https://github.com/dadge/virtual_thermostat)._
+A Home Assistant custom component that adds preset mode support (HOME, ECO, AWAY) to physical thermostats that lack this feature.
 
-This custom component for Home Assistant solves a very specific use case, and you will probably not need this.
-Some hardware thermostats come without presets. This component creates a virtual thermostat with presets and will
-execute a continuous two-way sync of status and setpoint between the hardware thermostat and the virtual thermostat.
+## Use case
 
-## How Generic thermostat behaves with modes :
-Basically, the generic thermostat handle two preset mode : AWAY and NONE.
-When AWAY mode is set, the thermostat will set the tempaerature with the away temperature defined in the yaml configuration.
-When NONE is selected, the temperature set is saved. Every time you set the mode as NONE, the temperature will be automatically set with the saved value. If you want to change the saved value, set the mode to NONE, set the deisred temperature, and that's it.
+Some hardware thermostats (e.g., Z-Wave Heatit) don't support preset/profile modes. This component creates a virtual thermostat entity that:
 
-## How Virtual Thermostat behaves with modes and additional feature
-Define by default all the modes defined in the climate specs : https://developers.home-assistant.io/docs/core/entity/climate#presets
-The virtual thermostat reproduce the behavior of the mode NONE in generic thermostat and extend it to all the modes :
-* Pick a mode
+- Acts as a **frontend** to your physical thermostat
+- Adds **HOME**, **ECO**, and **AWAY** preset modes, each with its own remembered temperature setpoint
+- Maintains **two-way sync** between the virtual and physical thermostat at all times
+- If someone changes the temperature at the wall-mounted device, the virtual thermostat updates automatically
+- If the physical thermostat is turned off at the wall, the virtual thermostat reflects this
+- After a Home Assistant restart, the virtual thermostat **syncs from the physical thermostat** (the physical device is the source of truth)
 
-![image](https://user-images.githubusercontent.com/1717155/119150574-dd6c2680-ba4e-11eb-80bb-a1164b0b9df4.png)
+## How presets work
 
-* Set a temperature
+1. Select a preset mode (e.g., ECO)
+2. Set a temperature - it is saved for that preset
+3. Switch to another preset - its saved temperature is applied
+4. Switch back - the previously saved temperature is restored
 
-![image](https://user-images.githubusercontent.com/1717155/119150718-012f6c80-ba4f-11eb-9913-7c320bdce8cc.png)
-
-* That's it ! The temperature is saved for this mode.
-* Reproduce the previous step to update the temperatures / set other modes
-
-
-## Minimum requirements
-
-* This implementstion can override or superseed the core generic thermostat
+Each preset remembers its own temperature independently.
 
 ## Installation
 
-### HACS installation
+### HACS (recommended)
 
-1. Install [HACS](https://hacs.xyz/). That way you get updates automatically.
-2. Add this Github repository as custom repository in HACS settings.
-3. search and install "Virtual Thermostat" in HACS and click `install`.
-4. Modify your `configuration.yaml` as explain below.
-5. Restart Home Assistant.
+1. Install [HACS](https://hacs.xyz/)
+2. Add this repository as a custom repository in HACS settings
+3. Search and install "Virtual Thermostat"
+4. Add configuration to `configuration.yaml` (see below)
+5. Restart Home Assistant
 
-### Manual installation
+### Manual
 
-1. Using the tool of choice open the directory (folder) for your HA configuration (where you find `configuration.yaml`).
-2. If you do not have a `custom_components` directory (folder) there, you need to create it.
-3. In the `custom_components` directory (folder) create a new folder called `virtual_thermostat`.
-4. Download _all_ the files from the `custom_components/virtual_thermostat/` directory (folder) in this repository.
-5. Place the files you downloaded in the new directory (folder) you created.
-6. Modify your `configuration.yaml` as explain below
-7. Restart Home Assistant
+1. Copy the `custom_components/virtual_thermostat/` directory to your Home Assistant `custom_components/` directory
+2. Add configuration to `configuration.yaml` (see below)
+3. Restart Home Assistant
 
 ## Configuration
-
-In the following examples we are assuming that you know how to configure a generic thermostat (if not please have a look at : https://www.home-assistant.io/integrations/generic_thermostat/ ) and we will just highlight the differences in the configuration to apply.
 
 ```yaml
 climate:
   - platform: virtual_thermostat
-    name: Study
-    heater: switch.study_heater
-    target_sensor: sensor.study_temperature
+    name: Living Room Thermostat
+    thermostat: climate.living_room_physical
+    target_sensor: sensor.living_room_temperature
+    initial_hvac_mode: heat
+    precision: 0.5
+    unique_id: living_room_virtual_thermostat
 ```
 
-If you had already configure a generic thermostat the onli changes you have to do are the following :
-* platform must be changed from generic_thermostat to virtual_thermostat
-* away_temp must be removed
+### Configuration options
 
-## Even Better with Scheduler Component !
+| Key | Required | Default | Description |
+|-----|----------|---------|-------------|
+| `thermostat` | Yes | - | Entity ID of the physical thermostat to wrap |
+| `target_sensor` | Yes | - | Entity ID of the temperature sensor |
+| `name` | No | Virtual Thermostat | Display name |
+| `ac_mode` | No | false | Set to `true` for cooling mode |
+| `min_temp` | No | 7 | Minimum allowed temperature |
+| `max_temp` | No | 35 | Maximum allowed temperature |
+| `target_temp` | No | - | Initial target temperature (overridden by physical thermostat on startup) |
+| `initial_hvac_mode` | No | - | Initial HVAC mode (`heat`, `cool`, or `off`) |
+| `precision` | No | 0.5 | Temperature precision (0.1, 0.5, or 1.0) |
+| `unique_id` | No | - | Unique ID for the entity (recommended) |
 
-In order to enjoy the full power of virtual thermostat, I invite you to use it with https://github.com/nielsfaber/scheduler-component
-Indeed, the schdeuler component porpose a management of the climate base on the preset modes. This feature has limited interest with the generic thermostat but it becomes highly powerfull with Virtual thermostat :
+## Works great with Scheduler Component
 
-Starting here, I assume you have installed Virtual Thermostat and Scheduler Component.
-
-In Scheduler, add a schedule :
-
-![image](https://user-images.githubusercontent.com/1717155/119146454-ee1a9d80-ba4a-11eb-80ae-3074c3511830.png)
-
-Choose "climate" group, choose one (or multiple) entity/ies, select "MAKE SCHEME" and click next :
-(it is possible to choose "SET PRESET", but I prefer to use "MAKE SCHEME")
-
-![image](https://user-images.githubusercontent.com/1717155/119147210-aa746380-ba4b-11eb-8def-479a741c0ba7.png)
-
-Set your mode scheme and save :
-
-![image](https://user-images.githubusercontent.com/1717155/119147784-2f5f7d00-ba4c-11eb-9de4-5e62ff5e71a8.png)
-
-In this example I set ECO mode during the night and the day when nobody's at home BOOST in the morning and COMFORT in the evening.
-
-
-I hope this example helps you, don't hesitate to give me your feedbacks !
+Use with [scheduler-component](https://github.com/nielsfaber/scheduler-component) to schedule preset mode changes throughout the day (e.g., ECO at night, HOME in the morning).
 
 ## Contributions are welcome!
 
-If you want to contribute to this please read the [Contribution guidelines](CONTRIBUTING.md)
+If you want to contribute, please read the [Contribution guidelines](CONTRIBUTING.md).
 
 ***
 
-[integration_blueprint]: https://github.com/custom-components/integration_blueprint
-[simple_thermostat]: https://github.com/dadge/simple_thermostat
-[buymecoffee]: https://www.buymeacoffee.com/dadge
-[buymecoffeebadge]: https://img.shields.io/badge/Buy%20me%20a%20beer-%245-orange?style=for-the-badge&logo=buy-me-a-beer
-[commits-shield]: https://img.shields.io/github/commit-activity/y/dadge/simple_thermostat.svg?style=for-the-badge
-[commits]: https://github.com/dadge/simple_thermostat/commits/master
-[hacs]: https://github.com/custom-components/hacs
+[commits-shield]: https://img.shields.io/github/commit-activity/y/paalkr/virtual_thermostat.svg?style=for-the-badge
+[commits]: https://github.com/paalkr/virtual_thermostat/commits/master
+[hacs]: https://github.com/hacs/integration
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
-[forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=for-the-badge
-[forum]: https://community.home-assistant.io/
-[license-shield]: https://img.shields.io/github/license/dadge/simple_thermostat.svg?style=for-the-badge
-[maintenance-shield]: https://img.shields.io/badge/maintainer-Joakim%20Sørensen%20%40ludeeus-blue.svg?style=for-the-badge
-[releases-shield]: https://img.shields.io/github/release/dadge/simple_thermostat.svg?style=for-the-badge
-[releases]: https://github.com/dadge/simple_thermostat/releases
+[license-shield]: https://img.shields.io/github/license/paalkr/virtual_thermostat.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/github/release/paalkr/virtual_thermostat.svg?style=for-the-badge
+[releases]: https://github.com/paalkr/virtual_thermostat/releases
