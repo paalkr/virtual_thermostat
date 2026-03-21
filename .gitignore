@@ -3,3 +3,13 @@ pythonenv*
 venv
 .venv
 .coverage
+.pytest_cache
+
+# Devcontainer HA runtime artifacts
+.devcontainer/.HA_VERSION
+.devcontainer/.storage/
+.devcontainer/blueprints/
+.devcontainer/custom_components
+.devcontainer/home-assistant.log*
+.devcontainer/home-assistant_v2.db*
+.devcontainer/tts/
